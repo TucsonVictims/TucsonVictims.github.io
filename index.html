@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Список игроков</title>
+  <style>
+    body { font-family: sans-serif; background: #f4f4f4; padding: 30px; text-align: center; }
+    table { margin: auto; border-collapse: collapse; background: white; box-shadow: 0 0 5px rgba(0,0,0,0.2); width: 300px; }
+    th, td { border: 1px solid #ccc; padding: 10px 20px; }
+    input { border: none; text-align: center; width: 70%; font-size: 16px; padding: 6px; }
+    button { background: #ff5252; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; margin-left: 8px; }
+    button:hover { background: #ff7b7b; }
+    #addBtn { margin-top: 15px; background: #4caf50; color: white; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; }
+    #addBtn:hover { background: #6dd56d; }
+  </style>
+</head>
+<body>
+  <h2>Список игроков</h2>
+  <table id="playerTable">
+    <tr>
+      <th>Игрок</th>
+    </tr>
+  </table>
+
+  <input type="text" id="newPlayer" placeholder="Введите ник">
+  <button id="addBtn">+ Добавить игрока</button>
+
+  <script>
+    const API_URL = 'https://sheetdb.io/api/v1/ul1a4ghd0iqpg'; // ← замените YOUR_API_ID
+    const table = document.getElementById('playerTable');
+    const addBtn = document.getElementById('addBtn');
+    const newPlayerInput = document.getElementById('newPlayer');
+
+    // Загрузка всех игроков
+    function loadPlayers() {
+      fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+          table.innerHTML = '<tr><th>Игрок</th></tr>';
+          data.forEach(row => addRow(row.name));
+        })
+        .catch(err => console.error(err));
+    }
+
+    // Добавление строки на страницу
+    function addRow(name) {
+      const newRow = table.insertRow(-1);
+      const cell = newRow.insertCell(0);
+      cell.innerHTML = `
+        <input type="text" value="${name}" readonly>
+        <button>🗑</button>
+      `;
+      const btn = cell.querySelector('button');
+      btn.addEventListener('click', () => deletePlayer(name, newRow));
+    }
+
+    // Добавление нового игрока через API
+    addBtn.addEventListener('click', () => {
+      const name = newPlayerInput.value.trim();
+      if(!name) return alert('Введите ник!');
+      fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: [{ name }] })
+      })
+      .then(res => res.json())
+      .then(() => {
+        addRow(name);
+        newPlayerInput.value = '';
+      })
+      .catch(err => console.error(err));
+    });
+
+    // Удаление игрока через API
+    function deletePlayer(name, row) {
+      fetch(`${API_URL}/name/${encodeURIComponent(name)}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(() => row.remove())
+        .catch(err => console.error(err));
+    }
+
+    // Инициализация
+    loadPlayers();
+  </script>
+</body>
+</html>
