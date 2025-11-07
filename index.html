@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Old Net</title>
+<style>
+body {
+  background: #c0d4e8;
+  font-family: Tahoma, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+.window {
+  width: 480px;
+  margin: 40px auto;
+  border: 2px solid #7da2ce;
+  background: #e7eff8;
+  box-shadow: 2px 2px 0 #fff inset, -1px -1px 0 #7da2ce inset;
+}
+.titlebar {
+  background: linear-gradient(to bottom, #2d69b3, #1e4d82);
+  color: white;
+  padding: 4px 8px;
+  font-weight: bold;
+  font-size: 13px;
+}
+.chatbox {
+  height: 300px;
+  overflow-y: auto;
+  padding: 6px;
+  background: #ffffff;
+  border: 1px solid #7da2ce;
+  margin: 6px;
+  font-size: 13px;
+}
+.input-area {
+  display: flex;
+  gap: 4px;
+  margin: 6px;
+}
+input[type=text] {
+  flex: 1;
+  padding: 4px;
+  border: 1px solid #7da2ce;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 13px;
+}
+button {
+  background: #dbe6f3;
+  border: 1px solid #7da2ce;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 10px;
+}
+button:hover {
+  background: #c9d9f0;
+}
+#nick {
+  width: 100px;
+}
+.message.me { background: #e7f9e7; border-left: 3px solid #67b267; margin: 4px 0; padding: 2px 4px; }
+.message.other { background: #f8f1e7; border-left: 3px solid #d6a45a; margin: 4px 0; padding: 2px 4px; }
+.timestamp { float:right; color:#777; font-size:11px; }
+@keyframes blink {
+  0% { background-color: #ffff99; }
+  50% { background-color: #fff; }
+  100% { background-color: #ffff99; }
+}
+.blink {
+  animation: blink 1.2s ease-in-out 3;
+}
+.footer {
+  background: #d2e0f0;
+  text-align: center;
+  font-size: 11px;
+  color: #333;
+  padding: 4px;
+}
+</style>
+</head>
+<body>
+<div class="window">
+  <div class="titlebar">Old Net — общий чат</div>
+  <div style="padding:6px;">
+    Ник: <input type="text" id="nick" placeholder="User"> 
+    <button id="saveNick">💾</button>
+  </div>
+  <div class="chatbox" id="chat"></div>
+  <div class="input-area">
+    <input type="text" id="message" placeholder="Введите сообщение...">
+    <button id="send">Отправить</button>
+  </div>
+  <div class="footer">Old Net © 2003-style • Сообщения через Google SheetDB</div>
+</div>
+
+<audio id="sndRecv" preload="auto">
+  <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
+</audio>
+<audio id="sndSend" preload="auto">
+  <source src="https://actions.google.com/sounds/v1/cartoon/pop.ogg" type="audio/ogg">
+</audio>
+
+<script>
+const SHEETDB_URL = "https://sheetdb.io/api/v1/ul1a4ghd0iqpg";
+const POLL_MS = 3000;
+const chatEl = document.getElementById('chat');
+const nickEl = document.getElementById('nick');
+const msgEl = document.getElementById('message');
+const sendBtn = document.getElementById('send');
+const saveNickBtn = document.getElementById('saveNick');
+const sndRecv = document.getElementById('sndRecv');
+const sndSend = document.getElementById('sndSend');
+let lastMessages = [];
+
+if(localStorage.getItem('oldnet_nick'))
+  nickEl.value = localStorage.getItem('oldnet_nick');
+
+saveNickBtn.onclick = () => {
+  const n = nickEl.value.trim() || 'User';
+  localStorage.setItem('oldnet_nick', n);
+  alert('Ник сохранён: ' + n);
+};
+
+sendBtn.onclick = sendMessage;
+msgEl.addEventListener('keydown', e => { if(e.key === 'Enter') sendMessage(); });
+
+async function sendMessage() {
+  const nick = nickEl.value.trim() || 'User';
+  const msg = msgEl.value.trim();
+  if(!msg) return;
+  const payload = { nick, message: msg, time: new Date().toISOString() };
+
+  try {
+    const res = await fetch(SHEETDB_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error(await res.text());
+    msgEl.value = '';
+    sndSend.play();
+    await loadMessages();
+  } catch(e) {
+    console.error('Ошибка отправки:', e);
+    const errDiv = document.createElement('div');
+    errDiv.style.color = 'red';
+    errDiv.textContent = '⚠ Ошибка отправки: ' + e.message;
+    chatEl.appendChild(errDiv);
+  }
+}
+
+async function loadMessages() {
+  try {
+    const res = await fetch(SHEETDB_URL + '?limit=50');
+    const data = await res.json();
+    const msgs = data.map(r => ({
+      nick: r.nick || 'Anon',
+      message: r.message || '',
+      time: r.time || r.created_at || ''
+    }));
+    renderMessages(msgs);
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+function renderMessages(msgs) {
+  if(JSON.stringify(msgs) === JSON.stringify(lastMessages)) return;
+  const oldLen = lastMessages.length;
+  const newLen = msgs.length;
+  chatEl.innerHTML = '';
+  msgs.forEach((m,i) => {
+    const div = document.createElement('div');
+    const me = (m.nick === localStorage.getItem('oldnet_nick'));
+    div.className = 'message ' + (me?'me':'other');
+    div.innerHTML = `<b>${escapeHTML(m.nick)}:</b> ${escapeHTML(m.message)} <span class='timestamp'>${formatTime(m.time)}</span>`;
+    chatEl.appendChild(div);
+  });
+  chatEl.scrollTop = chatEl.scrollHeight;
+  if (oldLen && newLen > oldLen) {
+    sndRecv.play();
+    const last = chatEl.lastElementChild;
+    if(last) last.classList.add('blink');
+  }
+  lastMessages = msgs;
+}
+
+function formatTime(t) {
+  if(!t) return '';
+  const d = new Date(t);
+  return d.toLocaleTimeString();
+}
+
+function escapeHTML(s) {
+  return s.replace(/[&<>\"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+setInterval(loadMessages, POLL_MS);
+loadMessages();
+</script>
+</body>
+</html>
