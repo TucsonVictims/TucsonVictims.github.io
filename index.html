@@ -1,0 +1,228 @@
+<!doctype html>
+
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>OldNet — Ностальгия-симулятор (ретро-чат P2P)</title>
+<style>
+  /* Retro XP-ish styling */
+  :root{ --bg:#dfefff; --window:#cfe6ff; --accent:#0078d7; --text:#002; }
+  html,body{height:100%;margin:0;font-family:Verdana,Arial,Helvetica,sans-serif;background:radial-gradient(circle at 10% 10%, #e6f0ff, var(--bg));color:var(--text)}
+  .desktop{max-width:980px;margin:18px auto;padding:18px;border-radius:8px;background:linear-gradient(#f6fbff,#eaf4ff);box-shadow:0 10px 24px rgba(0,0,0,0.12)}
+  header{display:flex;align-items:center;gap:12px}
+  .logo{width:64px;height:64px;background:linear-gradient(#9fd6ff,#6fb8ff);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;color:white;box-shadow:inset 0 -4px 8px rgba(0,0,0,0.08)}
+  h1{font-size:20px;margin:0}
+  .toolbar{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+  button{font-family:inherit;padding:6px 10px;border-radius:6px;border:2px solid #b6d6ff;background:linear-gradient(#fff,#d9efff);cursor:pointer}
+  button.primary{background:linear-gradient(#0078d7,#005fa3);color:white;border-color:#004d89}
+  .win{margin-top:12px;border:3px solid #abcdf0;background:linear-gradient(#f8fcff,#e6f6ff);padding:12px;border-radius:6px;display:flex;gap:12px}
+  .sidebar{width:240px}
+  .panel{flex:1;display:flex;flex-direction:column}
+  label{display:block;margin:6px 0 4px;font-size:12px}
+  input[type=text],textarea{width:100%;padding:6px;border:2px inset #fff;border-radius:4px;background:linear-gradient(#fff,#f1fbff);font-family:inherit}
+  .users{height:220px;overflow:auto;border:2px dashed #d0e8ff;padding:6px;background:#f7fbff}
+  .chat{height:320px;overflow:auto;border:2px solid #d0e8ff;padding:8px;background:linear-gradient(#ffffff,#f6fbff)}
+  .msg{margin:6px 0;padding:6px;border-radius:6px}
+  .msg.me{background:#e6fff2;border:1px solid #b6ffd9}
+  .msg.other{background:#fff7e6;border:1px solid #ffdca8}
+  .status{font-size:12px;margin-top:6px}
+  .sdpbox{height:100px;font-family:monospace;white-space:pre-wrap;overflow:auto}
+  footer{margin-top:12px;font-size:12px;color:#444}
+  .retro-scan{position:absolute;pointer-events:none;left:0;top:0;right:0;bottom:0;mix-blend-mode:multiply;opacity:0.06;background-image:repeating-linear-gradient(0deg, rgba(0,0,0,0.02) 0 1px, transparent 1px 4px);border-radius:10px}
+  .row{display:flex;gap:8px}
+</style>
+</head>
+<body>
+<div class="desktop">
+  <header>
+    <div class="logo">OLD<br>NET</div>
+    <div>
+      <h1>OldNet — Ностальгия-симулятор (P2P ретро-чат)</h1>
+      <div style="font-size:12px;color:#345;">Эмуляция интерфейса 2000-х + P2P WebRTC обмен сообщениями через copy/paste (без серверов)</div>
+    </div>
+  </header>  <div class="toolbar">
+    <label>Ваш ник: <input id="nick" type="text" placeholder="Kotik98" value="User" /></label>
+    <button id="createOffer" class="primary">Создать комнату (создать предложение)</button>
+    <button id="createAnswer">Создать ответ (ответить на предложение)</button>
+    <button id="copyLocal">Скопировать локальное SDP</button>
+    <button id="pasteRemote">Вставить удалённое SDP</button>
+    <button id="reset">Сброс</button>
+    <div style="margin-left:auto;align-self:center;font-size:13px">Состояние: <span id="state">idle</span></div>
+  </div>  <div class="win">
+    <div class="sidebar">
+      <label>Контакты (онлайн)</label>
+      <div class="users" id="usersList">
+        <!-- dynamic -->
+      </div><label>Signalling (SDP)</label>
+  <textarea id="localSDP" class="sdpbox" readonly placeholder="Локальное SDP появится здесь"></textarea>
+  <textarea id="remoteSDP" class="sdpbox" placeholder="Вставьте сюда удалённое SDP и нажмите 'Вставить удалённое SDP'"></textarea>
+</div>
+
+<div class="panel">
+  <div class="chat" id="chat"></div>
+
+  <div style="margin-top:8px;display:flex;gap:8px;align-items:end">
+    <input id="message" type="text" placeholder="Написать сообщение..." />
+    <button id="send">Отправить</button>
+    <label style="margin-left:8px">Звук: <input id="soundToggle" type="checkbox" checked /></label>
+  </div>
+
+  <div class="status" id="info">Инструкция: чтобы соединиться — один из участников нажимает «Создать комнату» и отправляет локальное SDP второму (копипаст). Второй вставляет SDP и нажимает «Создать ответ», затем отправляет свой SDP первому. Первый вставляет ответ в поле удалённого SDP и нажимает «Вставить удалённое SDP».</div>
+</div>
+
+  </div>  <footer>Сделано в духе 2000-х — звуки, пиксели и ностальгия. Работает между браузерами с поддержкой WebRTC.</footer>  <div class="retro-scan"></div>
+</div><!-- Sounds (embedded via base64 small beep) --><audio id="sndRecv" preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA="/></audio> <audio id="sndSend" preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA="/></audio>
+
+<script>
+// Simple WebRTC datachannel P2P chat using manual SDP copy/paste (no signaling server)
+let pc = null;
+let dc = null;
+let localSDPBox = document.getElementById('localSDP');
+let remoteSDPBox = document.getElementById('remoteSDP');
+let stateEl = document.getElementById('state');
+let chatEl = document.getElementById('chat');
+let usersList = document.getElementById('usersList');
+let nickInput = document.getElementById('nick');
+let soundToggle = document.getElementById('soundToggle');
+let sndRecv = document.getElementById('sndRecv');
+let sndSend = document.getElementById('sndSend');
+
+function logStatus(s){ stateEl.textContent = s }
+
+function appendMessage(text, who='other'){
+  const d = document.createElement('div'); d.className = 'msg ' + (who==='me'?'me':'other');
+  d.textContent = text; chatEl.appendChild(d); chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function makePC(){
+  pc = new RTCPeerConnection({iceServers:[{urls:['stun:stun.l.google.com:19302']} ]});
+  pc.onicecandidate = (ev)=>{
+    // Update local SDP when ICE candidates appear
+    if(pc.localDescription){ localSDPBox.value = pc.localDescription.sdp }
+  }
+  pc.onconnectionstatechange = ()=>{ logStatus(pc.connectionState) }
+  pc.ondatachannel = (ev)=>{
+    setupDataChannel(ev.channel);
+  }
+}
+
+function setupDataChannel(channel){
+  dc = channel;
+  dc.onopen = ()=>{ logStatus('connected'); addFakePresence(); }
+  dc.onclose = ()=>{ logStatus('closed'); }
+  dc.onmessage = (ev)=>{
+    try{
+      const msg = JSON.parse(ev.data);
+      if(msg.type === 'chat'){
+        appendMessage(msg.nick + ': ' + msg.text, 'other');
+        if(soundToggle.checked) sndRecv.play();
+      } else if(msg.type === 'presence'){
+        renderUsers(msg); }
+    }catch(e){ appendMessage(ev.data,'other') }
+  }
+}
+
+function addFakePresence(){
+  // announce ourselves
+  sendPresence();
+}
+
+function renderUsers(pres){
+  usersList.innerHTML='';
+  for(const u of pres.users){
+    const el = document.createElement('div'); el.textContent = u; usersList.appendChild(el);
+  }
+}
+
+function sendPresence(){
+  if(dc && dc.readyState==='open'){
+    const payload = { type:'presence', users: [nickInput.value || 'User'] };
+    dc.send(JSON.stringify(payload));
+  }
+}
+
+function sendChat(text){
+  appendMessage('Я: ' + text, 'me');
+  if(dc && dc.readyState==='open'){
+    const payload = { type:'chat', nick: nickInput.value || 'User', text };
+    dc.send(JSON.stringify(payload));
+    if(soundToggle.checked) sndSend.play();
+  } else {
+    appendMessage('(не отправлено — нет подключения)');
+  }
+}
+
+// UI buttons
+document.getElementById('createOffer').onclick = async ()=>{
+  makePC();
+  dc = pc.createDataChannel('oldnet');
+  setupDataChannel(dc);
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  // localSDPBox will be filled by onicecandidate as ICE arrives
+  localSDPBox.value = pc.localDescription.sdp;
+  logStatus('offer-created');
+}
+
+document.getElementById('createAnswer').onclick = async ()=>{
+  // used by the peer who has received an offer in remoteSDPBox
+  try{
+    const remote = remoteSDPBox.value.trim();
+    if(!remote) return alert('Вставьте SDP предложения в поле удалённого SDP');
+    makePC();
+    const offerDesc = { type:'offer', sdp: remote };
+    await pc.setRemoteDescription(offerDesc);
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    localSDPBox.value = pc.localDescription.sdp;
+    logStatus('answer-created');
+  }catch(e){ alert('Ошибка создания ответа: '+e.message) }
+}
+
+document.getElementById('pasteRemote').onclick = async ()=>{
+  try{
+    const remote = remoteSDPBox.value.trim();
+    if(!remote) return alert('Поле удалённого SDP пустое');
+    const desc = { type: (pc && pc.signalingState==='have-local-offer')? 'answer':'offer', sdp: remote };
+    await pc.setRemoteDescription(desc);
+    logStatus('remote-set');
+    // once remote is set, announce presence
+    setTimeout(()=>sendPresence(), 500);
+  }catch(e){ alert('Ошибка установки удалённого SDP: '+e.message) }
+}
+
+document.getElementById('copyLocal').onclick = ()=>{
+  localSDPBox.select();
+  document.execCommand('copy');
+  alert('Локальное SDP скопировано в буфер обмена — передайте его другому участнику');
+}
+
+document.getElementById('reset').onclick = ()=>{
+  if(dc) try{ dc.close() }catch(e){}
+  if(pc) try{ pc.close() }catch(e){}
+  pc = null; dc = null; localSDPBox.value=''; remoteSDPBox.value=''; logStatus('idle'); usersList.innerHTML=''; chatEl.innerHTML='';
+}
+
+// send button
+document.getElementById('send').onclick = ()=>{
+  const txt = document.getElementById('message').value.trim(); if(!txt) return;
+  sendChat(txt); document.getElementById('message').value='';
+}
+
+// paste remote from clipboard (helper)
+async function pasteFromClipboard(){
+  try{ const text = await navigator.clipboard.readText(); remoteSDPBox.value = text; }catch(e){ /* ignore */ }
+}
+
+// keyboard send
+document.getElementById('message').addEventListener('keydown', (e)=>{ if(e.key==='Enter') document.getElementById('send').click(); });
+
+// small UX: auto-paste on ctrl+v when remoteSDP focused
+remoteSDPBox.addEventListener('paste', ()=>setTimeout(()=>{},10));
+
+// nice retro greeting
+appendMessage('Добро пожаловать в OldNet! Чтобы начать — один из вас нажмёт "Создать комнату" и пошлёт SDP.', 'other');
+
+</script></body>
+</html>
