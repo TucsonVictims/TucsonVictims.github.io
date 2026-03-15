@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>YAMMi</title>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#0c0c0c;
+color:white;
+}
+
+header{
+background:#111;
+padding:20px;
+text-align:center;
+font-size:26px;
+}
+
+nav{
+display:flex;
+justify-content:center;
+background:#181818;
+}
+
+nav button{
+background:none;
+border:none;
+color:white;
+padding:15px 25px;
+font-size:16px;
+cursor:pointer;
+}
+
+nav button:hover{
+background:#ff2a2a;
+}
+
+.section{
+display:none;
+padding:40px;
+max-width:900px;
+margin:auto;
+}
+
+.active{
+display:block;
+}
+
+/* карточки функций */
+
+.features{
+display:flex;
+gap:20px;
+flex-wrap:wrap;
+}
+
+.card{
+background:#1a1a1a;
+padding:20px;
+width:200px;
+border-radius:6px;
+transition:0.3s;
+}
+
+.card:hover{
+transform:scale(1.05);
+background:#222;
+}
+
+/* меню чита */
+
+.cheat-menu{
+width:320px;
+background:#111;
+padding:20px;
+border-radius:8px;
+box-shadow:0 0 20px rgba(255,0,0,0.3);
+}
+
+.option{
+display:flex;
+justify-content:space-between;
+margin-bottom:12px;
+}
+
+/* отзывы */
+
+.review-box{
+display:flex;
+flex-direction:column;
+gap:10px;
+max-width:400px;
+}
+
+textarea{
+height:80px;
+}
+
+.review{
+background:#1a1a1a;
+padding:15px;
+margin-top:10px;
+border-radius:6px;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+YAMMi
+</header>
+
+<nav>
+<button onclick="show('home')">Главная</button>
+<button onclick="show('features')">Функции</button>
+<button onclick="show('menu')">Меню</button>
+<button onclick="show('download')">Скачать</button>
+<button onclick="show('reviews')">Отзывы</button>
+</nav>
+
+<!-- главная -->
+
+<div id="home" class="section active">
+<h2>Добро пожаловать</h2>
+<p>Официальная страница проекта YAMMi.</p>
+</div>
+
+<!-- функции -->
+
+<div id="features" class="section">
+
+<h2>Функции</h2>
+
+<div class="features">
+
+<div class="card">
+<h3>Aim System</h3>
+<p>Расширенное управление прицелом</p>
+</div>
+
+<div class="card">
+<h3>ESP</h3>
+<p>Отображение игроков</p>
+</div>
+
+<div class="card">
+<h3>Configs</h3>
+<p>Гибкая система конфигов</p>
+</div>
+
+<div class="card">
+<h3>Optimization</h3>
+<p>Оптимизация FPS</p>
+</div>
+
+</div>
+
+</div>
+
+<!-- меню чита -->
+
+<div id="menu" class="section">
+
+<h2>Пример меню</h2>
+
+<div class="cheat-menu">
+
+<div class="option">
+<label>Aim Assist</label>
+<input type="checkbox">
+</div>
+
+<div class="option">
+<label>ESP</label>
+<input type="checkbox">
+</div>
+
+<div class="option">
+<label>Triggerbot</label>
+<input type="checkbox">
+</div>
+
+<div class="option">
+<label>FOV</label>
+<input type="range" min="0" max="180">
+</div>
+
+<div class="option">
+<label>Smooth</label>
+<input type="range" min="0" max="10">
+</div>
+
+</div>
+
+</div>
+
+<!-- скачать -->
+
+<div id="download" class="section">
+
+<h2>Скачать</h2>
+
+<button onclick="alert('Download coming soon')">
+Download YAMMi
+</button>
+
+</div>
+
+<!-- отзывы -->
+
+<div id="reviews" class="section">
+
+<h2>Отзывы пользователей</h2>
+
+<div class="review-box">
+
+<input id="name" placeholder="Ник">
+
+<textarea id="text" placeholder="Ваш отзыв"></textarea>
+
+<button onclick="addReview()">Отправить</button>
+
+</div>
+
+<div id="reviewList"></div>
+
+</div>
+
+<script>
+
+/* вкладки */
+
+function show(id){
+
+document.querySelectorAll('.section').forEach(s=>{
+s.classList.remove('active')
+})
+
+document.getElementById(id).classList.add('active')
+
+}
+
+/* отзывы */
+
+function addReview(){
+
+let name = document.getElementById("name").value
+let text = document.getElementById("text").value
+
+let review = document.createElement("div")
+
+review.className="review"
+
+review.innerHTML="<b>"+name+"</b><p>"+text+"</p>"
+
+document.getElementById("reviewList").appendChild(review)
+
+}
+
+</script>
+
+</body>
+</html>
